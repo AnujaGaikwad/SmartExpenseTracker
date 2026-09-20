@@ -1,47 +1,57 @@
-name: Debug GitHub OIDC
+name: Deploy Smart Expense Tracker Lambdas
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  debug:
+  deploy:
+    name: Deploy Lambda Functions
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get OIDC token
-        id: oidc
-        uses: actions/github-script@v8
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          script: |
-            const token = await core.getIDToken('sts.amazonaws.com');
-            core.setOutput('token', token);
+          role-to-assume: arn:aws:iam::669828370396:role/GitHubActions-SmartExpenseTracker
+          aws-region: ap-south-1
 
-      - name: Show OIDC claims
-        env:
-          TOKEN: ${{ steps.oidc.outputs.token }}
+      - name: Deploy SmartExpenseAdd
         run: |
-          python - <<'PY'
-          import os
-          import json
-          import base64
+          cd lambdas/add
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseAdd \
+            --zip-file fileb://lambda.zip
 
-          token = os.environ["TOKEN"]
-          payload = token.split(".")[1]
-          payload += "=" * (-len(payload) % 4)
+      - name: Deploy SmartExpenseGet
+        run: |
+          cd lambdas/get
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseGet \
+            --zip-file fileb://lambda.zip
 
-          claims = json.loads(
-              base64.urlsafe_b64decode(payload).decode()
-          )
+      - name: Deploy SmartExpenseDelete
+        run: |
+          cd lambdas/delete
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseDelete \
+            --zip-file fileb://lambda.zip
 
-          print("sub =", claims.get("sub"))
-          print("aud =", claims.get("aud"))
-          print("repository =", claims.get("repository"))
-          print("repository_owner =", claims.get("repository_owner"))
-          print("repository_id =", claims.get("repository_id"))
-          print("repository_owner_id =", claims.get("repository_owner_id"))
-          print("ref =", claims.get("ref"))
-          PY
+      - name: Deploy SmartExpenseStats
+        run: |
+          cd lambdas/stats
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseStats \
+            --zip-file fileb://lambda.zip
