@@ -12,15 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Request GitHub OIDC token
+      - name: Get OIDC token
         id: oidc
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const token = await core.getIDToken('sts.amazonaws.com');
             core.setOutput('token', token);
 
-      - name: Decode OIDC token claims
+      - name: Show OIDC claims
         env:
           TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
@@ -41,6 +41,7 @@ jobs:
           print("aud =", claims.get("aud"))
           print("repository =", claims.get("repository"))
           print("repository_owner =", claims.get("repository_owner"))
+          print("repository_id =", claims.get("repository_id"))
+          print("repository_owner_id =", claims.get("repository_owner_id"))
           print("ref =", claims.get("ref"))
-          print("workflow_ref =", claims.get("workflow_ref"))
           PY
