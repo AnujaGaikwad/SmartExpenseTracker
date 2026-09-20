@@ -1,0 +1,23 @@
+name: Smart Expense Tracker CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Python version
+        run: python --version
+
+      - name: Check Lambda files
+        run: |
+          echo "Repository downloaded successfully"
+          echo "Checking project files..."
+          ls -la
