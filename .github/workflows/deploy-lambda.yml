@@ -1,23 +1,57 @@
-name: Smart Expense Tracker CI/CD
+name: Deploy Smart Expense Tracker Lambdas
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  test:
+  deploy:
+    name: Deploy Lambda Functions
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check Python version
-        run: python --version
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::669828370396:role/GitHubActions-SmartExpenseTracker
+          aws-region: ap-south-1
 
-      - name: Check Lambda files
+      - name: Deploy SmartExpenseAdd
         run: |
-          echo "Repository downloaded successfully"
-          echo "Checking project files..."
-          ls -la
+          cd lambdas/add
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseAdd \
+            --zip-file fileb://lambda.zip
+
+      - name: Deploy SmartExpenseGet
+        run: |
+          cd lambdas/get
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseGet \
+            --zip-file fileb://lambda.zip
+
+      - name: Deploy SmartExpenseDelete
+        run: |
+          cd lambdas/delete
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseDelete \
+            --zip-file fileb://lambda.zip
+
+      - name: Deploy SmartExpenseStats
+        run: |
+          cd lambdas/stats
+          zip lambda.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name SmartExpenseStats \
+            --zip-file fileb://lambda.zip
