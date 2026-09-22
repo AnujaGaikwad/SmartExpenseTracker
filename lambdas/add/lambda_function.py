@@ -9,28 +9,77 @@ table = dynamodb.Table("SmartExpenseTracker")
 
 
 def lambda_handler(event, context):
-    body = json.loads(event.get("body", "{}"))
+    try:
+        # Get request body
+        if "body" in event:
+            body = event["body"]
 
-    amount = Decimal(str(body.get("amount")))
-    category = body.get("category")
-    description = body.get("description", "")
+            if isinstance(body, str):
+                body = json.loads(body)
+        else:
+            body = event
 
-    expense_id = str(uuid.uuid4())
+        # Get values from request
+        amount = body.get("amount")
+        category = body.get("category")
+        description = body.get("description")
+        date = body.get("date")
 
-    item = {
-        "expense_id": expense_id,
-        "amount": amount,
-        "category": category,
-        "description": description,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
+        # Validate required fields
+        if amount is None or not category or not description or not date:
+            return {
+                "statusCode": 400,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": json.dumps({
+                    "message": "All fields are required"
+                })
+            }
 
-    table.put_item(Item=item)
+        # Generate unique ID
+        expense_id = str(uuid.uuid4())
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "Expense added successfully",
-            "expense_id": expense_id
-        })
-    }
+        # Create DynamoDB item
+        item = {
+            "expense_id": expense_id,
+            "amount": Decimal(str(amount)),
+            "category": category,
+            "description": description,
+            "date": date,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        # Save to DynamoDB
+        table.put_item(Item=item)
+
+        # Return response
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps({
+                "message": "Expense added successfully",
+                "expense": {
+                    "expense_id": expense_id,
+                    "amount": float(item["amount"]),
+                    "category": category,
+                    "description": description,
+                    "date": date,
+                    "created_at": item["created_at"]
+                }
+            })
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps({
+                "message": "Error adding expense",
+                "error": str(e)
+            })
+        }
